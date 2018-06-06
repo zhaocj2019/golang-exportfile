@@ -1,0 +1,22 @@
+CREATE TABLE `export_data` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `userid` char(32) DEFAULT '',
+  `filename` varchar(255) DEFAULT '',
+  `fileext` varchar(20) NOT NULL DEFAULT 'xlsx' COMMENT '文件类型',
+  `filesize` int(10) unsigned DEFAULT '0' COMMENT '单位为byte',
+  `status` tinyint(1) DEFAULT '0' COMMENT '0 正在生成   1 已生成    2  已下载',
+  `createtime` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `product` varchar(50) DEFAULT NULL,
+  `module` varchar(50) DEFAULT NULL,
+  `method` varchar(50) DEFAULT NULL COMMENT '方法名',
+  `paramdata` varchar(1000) DEFAULT NULL,
+  `updatetime` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_alpha_framework` tinyint(3) NOT NULL DEFAULT '0' COMMENT '是否为alpha框架导出功能',
+  `user_info` text NOT NULL COMMENT '操作的用户信息',
+  `generated_itself` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否第三方自动生成',
+  `fetch_progress_address` varchar(100) NOT NULL COMMENT '查询进度的地址',
+  `gateway_params` varchar(200) NOT NULL COMMENT '发送网关传递的参数',
+  PRIMARY KEY (`id`),
+  KEY `IDX_USERID_STATUS` (`userid`,`status`),
+  KEY `idx_createtime` (`createtime`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=20567 DEFAULT CHARSET=utf8 COMMENT='导出服务表'
