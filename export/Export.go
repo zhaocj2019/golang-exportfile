@@ -1,7 +1,10 @@
 package export
 
 import (
+	"fmt"
 	"net/http"
+
+	httprequest "github.com/zhaochangjiang/golang-utils/httprequest"
 )
 
 //ExportInterface 导出要实现的方法规范
@@ -28,25 +31,45 @@ const (
 
 //Export 导出服务参数
 type Export struct {
-	ExportAbstract
+	RequestParams *map[string]interface{}
+}
+
+//New 初始化对象
+func (export *Export) New(r *http.Request) *Export {
+	export.RequestParams = new(httprequest.RequestParamsFormat).Run(r)
+
+	//延迟处理数据
+	defer export.Error()
+	return export
+}
+
+//错误信息收集
+func (export *Export) Error() {
+	if err := recover(); err != nil {
+		fmt.Println(err) // 这里的err其实就是panic传入的内容，55
+	}
 }
 
 //ExportStart 结构体的方法
-func (export *Export) ExportStart(r *http.Request) bool {
-	return new(ExportStart).New().Run()
+func (export *Export) ExportStart() bool {
+	res := new(ExportStart).SetRequestParams(export.RequestParams).Run()
+	return res
 }
 
 //ExportCancel 结构体的方法
-func (export *Export) ExportCancel(r *http.Request) bool {
-	return new(ExportCancel).New(r).Run()
+func (export *Export) ExportCancel() bool {
+	res := new(ExportCancel).SetRequestParams(export.RequestParams).Run()
+	return res
 }
 
 //ExportGetProgress 结构体的方法
-func (export *Export) ExportGetProgress(r *http.Request) *[]Progress {
-	return new(ExportProgress).New(r).Get()
+func (export *Export) ExportGetProgress() *[]Progress {
+	res := new(ExportProgress).SetRequestParams(export.RequestParams).GetProgress()
+	return res
 }
 
 //ExportGetList 结构体的方法
-func (export *Export) ExportGetList(r *http.Request) *[]ExportListReturn {
-	return new(ExportGetList).New(r).GetList()
+func (export *Export) ExportGetList() *[]ExportListReturn {
+	res := new(ExportGetList).SetRequestParams(export.RequestParams).GetList()
+	return res
 }

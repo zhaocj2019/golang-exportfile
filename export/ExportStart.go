@@ -1,6 +1,7 @@
 package export
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 )
@@ -16,11 +17,17 @@ type ExportStart struct {
 	fileResource  *ExcelWriter //
 	fileName      string
 	Params        *ModelExport
-	RequestParams interface{}
+	RequestParams *map[string]interface{}
 }
 
-//New init struct ExportStart
-func (e *ExportStart) New() (t *ExportStart) {
+//SetRequestParams init struct ExportStart
+func (e *ExportStart) SetRequestParams(requestParams *map[string]interface{}) (t *ExportStart) {
+	e.RequestParams = requestParams
+	paramJSON, err := json.Marshal(e.RequestParams)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(paramJSON))
 	return e
 }
 func (e *ExportStart) paramsDefaultDeal() {

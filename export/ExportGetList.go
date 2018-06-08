@@ -1,7 +1,5 @@
 package export
 
-import "net/http"
-
 //ExportListReturn every export return of the export
 //@author karl.zhao<zhaocj2009@126.com>
 //@date 2018/06/05
@@ -14,10 +12,12 @@ type ExportListReturn struct {
 //ExportGetList get export list
 type ExportGetList struct {
 	DataListFromDataBase *[]ModelExport
+	RequestParams        *map[string]interface{}
 }
 
-//New init ExportGetList
-func (exportGetList *ExportGetList) New(r *http.Request) *ExportGetList {
+//SetRequestParams init struct ExportGetList
+func (exportGetList *ExportGetList) SetRequestParams(requestParams *map[string]interface{}) (t *ExportGetList) {
+	exportGetList.RequestParams = requestParams
 	return exportGetList
 }
 

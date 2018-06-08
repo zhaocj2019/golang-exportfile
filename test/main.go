@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"strings"
 
-	export "github.com/zhaochangjiang/golang-exportfile/excel"
+	export "github.com/zhaochangjiang/golang-exportfile/export"
 )
 
 func hello(w http.ResponseWriter, req *http.Request) {
-	(new(export.Export)).New().ExportStart(req)
+	(new(export.Export)).New(req).ExportStart()
 	w.Write([]byte("Hello"))
 }
 

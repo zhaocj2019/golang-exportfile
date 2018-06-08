@@ -1,15 +1,14 @@
 package export
 
-import "net/http"
-
 //ExportCancel 取消导出服务
 type ExportCancel struct {
-	Res bool
+	Res           bool
+	RequestParams *map[string]interface{}
 }
 
-//New init an ExportCancel object
-func (exportCancel *ExportCancel) New(r *http.Request) *ExportCancel {
-
+//SetRequestParams init struct ExportCancel
+func (exportCancel *ExportCancel) SetRequestParams(requestParams *map[string]interface{}) (t *ExportCancel) {
+	exportCancel.RequestParams = requestParams
 	return exportCancel
 }
 
