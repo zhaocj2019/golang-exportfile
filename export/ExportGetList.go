@@ -11,14 +11,8 @@ type ExportListReturn struct {
 
 //ExportGetList get export list
 type ExportGetList struct {
+	ExportBaseStruct
 	DataListFromDataBase *[]ModelExport
-	RequestParams        *map[string]interface{}
-}
-
-//SetRequestParams init struct ExportGetList
-func (exportGetList *ExportGetList) SetRequestParams(requestParams *map[string]interface{}) (t *ExportGetList) {
-	exportGetList.RequestParams = requestParams
-	return exportGetList
 }
 
 //GetIDList get base message from database
@@ -27,7 +21,7 @@ func (exportGetList *ExportGetList) GetIDList() {
 }
 
 //GetList get the export message
-func (exportGetList *ExportGetList) GetList() *[]ExportListReturn {
+func (exportGetList *ExportGetList) Run() *[]ExportListReturn {
 	var res []ExportListReturn
 	exportGetList.GetIDList()
 	for _, v := range *exportGetList.DataListFromDataBase {

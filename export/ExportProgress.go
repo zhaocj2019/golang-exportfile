@@ -12,14 +12,8 @@ type Progress struct {
 
 //ExportProgress export progress struct
 type ExportProgress struct {
-	id            []string
-	RequestParams *map[string]interface{}
-}
-
-//SetRequestParams init struct ExportStart
-func (ep *ExportProgress) SetRequestParams(requestParams *map[string]interface{}) (t *ExportProgress) {
-	ep.RequestParams = requestParams
-	return ep
+	ExportBaseStruct
+	ID []string
 }
 
 //New return  Progress object
@@ -27,10 +21,10 @@ func (ep *ExportProgress) New(r *http.Request) *ExportProgress {
 	return ep
 }
 
-//GetProgress return the  progress status of the export
-func (ep *ExportProgress) GetProgress() *[]Progress {
+//Run return the  progress status of the export
+func (ep *ExportProgress) Run() *[]Progress {
 	var res []Progress
-	for _, v := range ep.id {
+	for _, v := range ep.ID {
 		progress := new(Progress)
 		progress.Status = 1
 		progress.ID = v

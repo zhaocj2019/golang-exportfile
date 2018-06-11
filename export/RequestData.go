@@ -1,6 +1,7 @@
 package export
 
 import (
+	"strconv"
 	"sync"
 
 	curl "github.com/mikemintang/go-curl"
@@ -49,10 +50,10 @@ func (cr *CURL) New() *CURL {
 	return cr
 }
 
-//Request
+//Request 向服务器请求信息
 func (cr *CURL) Request() string {
 	var res = ""
-	// 链式操作
+
 	req := curl.NewRequest()
 	cr.requestResponse.response, cr.requestResponse.err = req.
 		SetUrl(cr.RequestData.URI).
@@ -67,6 +68,9 @@ func (cr *CURL) Request() string {
 	}
 	if cr.requestResponse.response.IsOk() {
 		res = cr.requestResponse.response.Body
+	} else {
+		//如果服务器返回的状态不是200,则报错
+		panic("the server return status is wrong(http code:" + strconv.Itoa(cr.requestResponse.response.Raw.StatusCode) + ")")
 	}
 	return res
 }

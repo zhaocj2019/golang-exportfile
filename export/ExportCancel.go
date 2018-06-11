@@ -2,14 +2,8 @@ package export
 
 //ExportCancel 取消导出服务
 type ExportCancel struct {
-	Res           bool
-	RequestParams *map[string]interface{}
-}
-
-//SetRequestParams init struct ExportCancel
-func (exportCancel *ExportCancel) SetRequestParams(requestParams *map[string]interface{}) (t *ExportCancel) {
-	exportCancel.RequestParams = requestParams
-	return exportCancel
+	ExportBaseStruct
+	Res bool
 }
 
 //Run do action export cancel

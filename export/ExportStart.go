@@ -1,111 +1,94 @@
 package export
 
+//@author kalr.zhao<zhaocj2015@163.com>
+//@date 2018/06/11
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
-)
+	"errors"
 
-//author kalr.zhao<zhaocj2015@sohu.com>
-//
+	"github.com/zhaochangjiang/golang-utils/utils"
+)
 
 //ExportStart the task export start struct
 type ExportStart struct {
-	Data          []interface{}
-	TotalPage     int
-	RepsonseBody  string
-	fileResource  *ExcelWriter //
-	fileName      string
-	Params        *ModelExport
-	RequestParams *map[string]interface{}
-}
-
-//SetRequestParams init struct ExportStart
-func (e *ExportStart) SetRequestParams(requestParams *map[string]interface{}) (t *ExportStart) {
-	e.RequestParams = requestParams
-	paramJSON, err := json.Marshal(e.RequestParams)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(paramJSON))
-	return e
-}
-func (e *ExportStart) paramsDefaultDeal() {
-	//add data to database
-	e.Params = &ModelExport{Status: STATUSSTART, Filename: e.fileName}
-	var types = reflect.TypeOf(e.Params)
-	fmt.Println(e.RequestParams)
-	fmt.Println(types)
+	ExportBaseStruct
+	Params      *ModelExport
+	startParams *ModelExport
 }
 
 //Run do action export start function
-func (e *ExportStart) Run() bool {
-	e.paramsDefaultDeal()
-	(new(ModelExportOperate)).Add(e.Params)
+func (e *ExportStart) Run() (string, error) {
 
-	//Excel handle initialize
-	e.fileResource = new(ExcelWriter).New()
-	e.fileResource.InitFile().InitSheet(e.fileName)
-	defer e.fileResource.Close()
-
-	//get data and deal it
-	e.dataDeal()
-
-	return true
-}
-func (e *ExportStart) dataDeal() {
-	//get the first page data and set it at e.Data
-	e.firstPage()
-
-	//other page data deal
-	e.dealOtherPageData()
-}
-
-//dealOtherPageData
-func (e *ExportStart) dealOtherPageData() {
-
-	for i := 1; i < e.TotalPage; i++ {
-		curl := (new(CURL)).New()
-		curl.URI = ""
-		curl.RequestData.GetParams = map[string]string{}
-		curl.RequestData.PostParams = map[string]interface{}{}
-		curl.RequestData.Cookies = map[string]string{}
-		curl.RequestData.Headers = map[string]string{}
-		curl.Request()
-		//get data by curl
-		e.getData()
-		e.validateResponseData()
+	var id = ""
+	err := e.BeforRun()
+	if nil != err {
+		return id, err
 	}
+	err = e.paramsDefaultDeal()
+	if nil != err {
+		return id, err
+	}
+	id, err = (new(ModelExportOperate)).Add(e.Params)
+	if err != nil {
+		return id, err
+	}
+
+	//执行后台任务生成Excel文件
+	go (&RunTask{nil, e.Params.Filename, "", 0, nil, e.Params}).DoTask()
+	return id, err
 }
 
-//orgReturnData format return Data
-func (e *ExportStart) orgReturnData() {
-
+//BeforRun 开始执行准备
+func (e *ExportStart) BeforRun() error {
+	paramJSON, err := json.Marshal(e.RequestParams)
+	e.Log.Write("debug", "开始执行导出,参数为:"+string(paramJSON))
+	return err
 }
 
-//firstPage catch the fist page data
-func (e *ExportStart) firstPage() {
+//默认参数设置
+func (e *ExportStart) paramsDefaultDeal() error {
 
-	//get data by curl
-	e.getData()
+	var err error
+	//如果pageNo 没设置默认为1
+	if utils.MapKeyIsSet("pageNo", e.RequestParams) != true {
+		(*e.RequestParams)["pageNo"] = 1
+	}
 
-	//validate data is right
-	e.validateResponseData()
+	//如果pageSize 没设置，默认指定1000
+	if utils.MapKeyIsSet("pageSize", e.RequestParams) != true {
+		(*e.RequestParams)["pageSize"] = 1000
+	}
+	//如果pageSize 没设置，默认指定1000
+	if utils.MapKeyIsSet("alpha", e.RequestParams) != true {
+		(*e.RequestParams)["alpha"] = 0
+	}
+	if utils.MapKeyIsSet("module", e.RequestParams) {
+		return errors.New("The params module is not exists")
+	}
 
-}
+	if utils.MapKeyIsSet("method", e.RequestParams) {
+		return errors.New("The params method is not exists")
+	}
 
-//validateData validate the format of the url return data
-func (e *ExportStart) validateResponseData() {
+	if utils.MapKeyIsSet("product", e.RequestParams) {
+		return errors.New("The params product is not exists")
+	}
+	if utils.MapKeyIsSet("filename", e.RequestParams) {
+		return errors.New("The params filename is not exists")
+	}
+	//add data to database
+	e.Params = &ModelExport{Status: STATUSSTART, Fileext: "xlsx", Filesize: 0, Createtime: utils.TimeNow(), Progress: 0}
 
-}
+	req := make(map[string]interface{})
+	e.Params.Filename, e.Params.RequestModule, e.Params.RequestMethod, e.Params.RequestProduct, e.Params.Alpha, e.Params.Token, e.Params.Generateditself, req = (*e.RequestParams)["filename"].(string), (*e.RequestParams)["module"].(string),
+		(*e.RequestParams)["method"].(string),
+		(*e.RequestParams)["product"].(string),
+		(*e.RequestParams)["alpha"].(int),
+		(*e.RequestParams)["token"].(string),
+		(*e.RequestParams)["generateditself"].(bool),
+		(*e.RequestParams)["param"].(map[string]interface{})
 
-//GetData fetch the data by curl
-func (e *ExportStart) getData() {
-	curl := (new(CURL)).New()
-	curl.URI = ""
-	curl.RequestData.GetParams = map[string]string{}
-	curl.RequestData.PostParams = map[string]interface{}{}
-	curl.RequestData.Cookies = map[string]string{}
-	curl.RequestData.Headers = map[string]string{}
-	e.RepsonseBody = curl.Request()
+	e.Params.Paramdata = (*e.RequestParams)
+	e.Params.RequestFormdata = &req
+	return err
 }
