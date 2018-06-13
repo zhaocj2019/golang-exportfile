@@ -4,7 +4,7 @@ import "net/http"
 
 //Progress the export Progress struct
 type Progress struct {
-	Status   int    `json:status`   //status
+	Status   int8   `json:status`   //status
 	ID       string `json:id`       //
 	Progress int    `json:progress` //
 	Message  string `json:message`  //

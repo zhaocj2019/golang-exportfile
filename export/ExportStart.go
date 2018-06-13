@@ -12,8 +12,7 @@ import (
 //ExportStart the task export start struct
 type ExportStart struct {
 	ExportBaseStruct
-	Params      *ModelExport
-	startParams *ModelExport
+	Params *ModelExport
 }
 
 //Run do action export start function
@@ -32,6 +31,14 @@ func (e *ExportStart) Run() (string, error) {
 	if err != nil {
 		return id, err
 	}
+
+	//缓存任务进度
+	progress := new(Progress)
+	progress.ID = id
+	progress.Message = ""
+	progress.Progress = e.Params.Progress
+	progress.Status = e.Params.Status
+	e.ExportBaseStruct.SaveProgressToCache(progress)
 
 	//执行后台任务生成Excel文件
 	go (&RunTask{nil, e.Params.Filename, "", 0, nil, e.Params}).DoTask()
@@ -90,5 +97,13 @@ func (e *ExportStart) paramsDefaultDeal() error {
 
 	e.Params.Paramdata = (*e.RequestParams)
 	e.Params.RequestFormdata = &req
+
+	//设置开始任务的进度
+	e.Params.Progress = PROGRESSSTART
 	return err
+}
+
+//SetProgress 设置任务进度
+func (e *ExportStart) SetProgress() {
+
 }

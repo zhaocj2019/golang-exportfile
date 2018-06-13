@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	httprequest "github.com/zhaochangjiang/golang-utils/httprequest"
+	"github.com/zhaochangjiang/golang-utils/mycache"
 )
 
 const (
@@ -18,13 +19,23 @@ const (
 	STATUSCANCEL = 2
 
 	//STATUSFAILURE 操作失败
-	STATUSFAILURE = 3
+	STATUSFAILURE = -1
+
+	//PROGRESSSTART 任务启动时的进度
+	PROGRESSSTART = 3
+
+	//PROGRESSGETDATAFINISH 获取数据结束时的进度
+	PROGRESSGETDATAFINISH = 96
+
+	//PROGRESSOVER 结束时的进
+	PROGRESSOVER = 100
 )
 
 //Export 导出服务参数
 type Export struct {
 	Params     *map[string]interface{}
 	LogPointer *Log
+	Cache      mycache.Cache
 }
 
 //New 初始化对象
@@ -44,7 +55,11 @@ func (export *Export) initEnv(r *http.Request) {
 
 	//初始化 日志
 	export.initLog()
-
+	var err error
+	export.Cache, err = mycache.NewCache("redis", "{\"password\":\"cae0f7fcf1\",\"conn\":\"172.16.1.39:6379\",\"dbNum\":\"0\"}")
+	if nil != err {
+		panic(err)
+	}
 	//初始化参数
 	export.Params = new(httprequest.RequestParamsFormat).Run(r)
 }
@@ -64,7 +79,8 @@ func (export *Export) Error() {
 
 //ExportStart 结构体的方法
 func (export *Export) ExportStart() string {
-	action := &ExportStart{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer}, nil, nil}
+
+	action := &ExportStart{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer, ProgressID: "", Cache: export.Cache}, nil}
 	res, err := action.Run()
 	if nil != err {
 		panic(err)
@@ -74,21 +90,21 @@ func (export *Export) ExportStart() string {
 
 //ExportCancel 结构体的方法
 func (export *Export) ExportCancel() bool {
-	action := &ExportCancel{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer}, false}
+	action := &ExportCancel{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer, ProgressID: "", Cache: export.Cache}, false}
 	res := action.Run()
 	return res
 }
 
 //ExportGetProgress 结构体的方法
 func (export *Export) ExportGetProgress() *[]Progress {
-	action := &ExportProgress{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer}, nil}
+	action := &ExportProgress{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer, ProgressID: "", Cache: export.Cache}, nil}
 	res := action.Run()
 	return res
 }
 
 //ExportGetList 结构体的方法
 func (export *Export) ExportGetList() *[]ExportListReturn {
-	action := &ExportGetList{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer}, nil}
+	action := &ExportGetList{ExportBaseStruct{RequestParams: export.Params, Log: export.LogPointer, ProgressID: "", Cache: export.Cache}, nil}
 	res := action.Run()
 	return res
 }
