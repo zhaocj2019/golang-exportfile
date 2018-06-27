@@ -4,6 +4,16 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
+var excelWriter *ExcelWriter
+
+//NewExcelWriter 初始化NewExcelWriter
+func NewExcelWriter() *ExcelWriter {
+	if nil == excelWriter {
+		excelWriter = &ExcelWriter{}
+	}
+	return excelWriter
+}
+
 //ExcelWriter create ExcelFile struct
 type ExcelWriter struct {
 	fileName        string
@@ -15,21 +25,20 @@ type ExcelWriter struct {
 	err             error
 }
 
-//New init ExcelWriter
-func (e *ExcelWriter) New() *ExcelWriter {
+func (e *ExcelWriter) returnContent() *ExcelWriter {
 	return e
 }
 
 //SetFileName set excel file name
 func (e *ExcelWriter) SetFileName(fileName string) *ExcelWriter {
 	e.fileName = fileName
-	return e.New()
+	return e.returnContent()
 }
 
 //InitFile init the resource of the excel write
 func (e *ExcelWriter) InitFile() *ExcelWriter {
 	e.file = xlsx.NewFile()
-	return e.New()
+	return e.returnContent()
 }
 
 //InitSheet init or switch sheet
@@ -41,7 +50,7 @@ func (e *ExcelWriter) InitSheet(sheetName string) *ExcelWriter {
 		e.sheets[sheetName] = e.sheetNow
 		e.errorDeal()
 	}
-	return e.New()
+	return e.returnContent()
 }
 
 //AddRow add a row to excel
@@ -53,7 +62,7 @@ func (e *ExcelWriter) AddRow(oneLineData map[string]string) *ExcelWriter {
 		e.cell = e.row.AddCell()
 		e.cell.Value = v
 	}
-	return e.New()
+	return e.returnContent()
 }
 
 //Save create file

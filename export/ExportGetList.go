@@ -11,7 +11,7 @@ type ExportListReturn struct {
 
 //ExportGetList get export list
 type ExportGetList struct {
-	ExportBaseStruct
+	BaseStruct
 	DataListFromDataBase *[]ModelExport
 }
 

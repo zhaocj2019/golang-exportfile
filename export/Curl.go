@@ -1,6 +1,7 @@
 package export
 
 import (
+	"errors"
 	"strconv"
 	"sync"
 
@@ -42,8 +43,8 @@ type CURL struct {
 var cr *CURL
 var once sync.Once
 
-//New
-func (cr *CURL) New() *CURL {
+//NewCurl 初始化curl请求
+func NewCurl() *CURL {
 	once.Do(func() {
 		cr = &CURL{}
 	})
@@ -51,9 +52,9 @@ func (cr *CURL) New() *CURL {
 }
 
 //Request 向服务器请求信息
-func (cr *CURL) Request() string {
-	var res = ""
+func (cr *CURL) Request() (string, error) {
 
+	reponseString := ""
 	req := curl.NewRequest()
 	cr.requestResponse.response, cr.requestResponse.err = req.
 		SetUrl(cr.RequestData.URI).
@@ -63,16 +64,16 @@ func (cr *CURL) Request() string {
 		SetPostData(cr.RequestData.PostParams).
 		Post()
 	if cr.requestResponse.err != nil {
-		// 	return err, resp.Raw
-		panic(cr.requestResponse.err)
+		return reponseString, cr.requestResponse.err
 	}
 	if cr.requestResponse.response.IsOk() {
-		res = cr.requestResponse.response.Body
+		reponseString = cr.requestResponse.response.Body
 	} else {
 		//如果服务器返回的状态不是200,则报错
-		panic("the server return status is wrong(http code:" + strconv.Itoa(cr.requestResponse.response.Raw.StatusCode) + ")")
+		err := errors.New("the server return status is wrong(http code:" + strconv.Itoa(cr.requestResponse.response.Raw.StatusCode) + ")")
+		return reponseString, err
 	}
-	return res
+	return reponseString, nil
 }
 
 //GetResponse the detail of request response

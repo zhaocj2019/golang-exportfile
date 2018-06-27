@@ -11,8 +11,10 @@ import (
 
 //ExportStart the task export start struct
 type ExportStart struct {
-	ExportBaseStruct
+	BaseStruct
 	Params *ModelExport
+	Port   int
+	Domain string
 }
 
 //Run do action export start function
@@ -23,32 +25,51 @@ func (e *ExportStart) Run() (string, error) {
 	if nil != err {
 		return id, err
 	}
+
+	//参数格式化
 	err = e.paramsDefaultDeal()
 	if nil != err {
 		return id, err
 	}
-	id, err = (new(ModelExportOperate)).Add(e.Params)
-	if err != nil {
+
+	//设置初始的导出进度
+	e.setInitProgress()
+
+	//往数据库写入一条导出任务数据
+	e.BaseStruct.ProgressID, err = (new(ModelExportOperate)).Add(e.Params)
+	if nil != err {
 		return id, err
 	}
 
+	//设置初始的导出进度
+	e.setInitProgress()
+
+	//执行后台任务生成Excel文件
+	(&RunTaskClient{StartParams: e.Params, Domain: e.Domain, Port: e.Port}).Run()
+	return e.BaseStruct.ProgressID, err
+}
+
+//保存进度到Redis
+func (e *ExportStart) setInitProgress() {
 	//缓存任务进度
 	progress := new(Progress)
-	progress.ID = id
+	progress.ID = e.BaseStruct.ProgressID
 	progress.Message = ""
 	progress.Progress = e.Params.Progress
 	progress.Status = e.Params.Status
-	e.ExportBaseStruct.SaveProgressToCache(progress)
-
-	//执行后台任务生成Excel文件
-	go (&RunTask{nil, e.Params.Filename, "", 0, nil, e.Params}).DoTask()
-	return id, err
+	e.BaseStruct.SaveProgressToCache(progress)
 }
 
 //BeforRun 开始执行准备
+//return error
 func (e *ExportStart) BeforRun() error {
+
 	paramJSON, err := json.Marshal(e.RequestParams)
-	e.Log.Write("debug", "开始执行导出,参数为:"+string(paramJSON))
+
+	if err != nil {
+		return err
+	}
+	e.Log.Write(LogDebug, "开始执行导出,参数为:"+string(paramJSON))
 	return err
 }
 
@@ -56,10 +77,8 @@ func (e *ExportStart) BeforRun() error {
 func (e *ExportStart) paramsDefaultDeal() error {
 
 	var err error
-	//如果pageNo 没设置默认为1
-	if utils.MapKeyIsSet("pageNo", e.RequestParams) != true {
-		(*e.RequestParams)["pageNo"] = 1
-	}
+	//从第一页获取数据
+	(*e.RequestParams)["pageNo"] = 1
 
 	//如果pageSize 没设置，默认指定1000
 	if utils.MapKeyIsSet("pageSize", e.RequestParams) != true {
@@ -69,22 +88,16 @@ func (e *ExportStart) paramsDefaultDeal() error {
 	if utils.MapKeyIsSet("alpha", e.RequestParams) != true {
 		(*e.RequestParams)["alpha"] = 0
 	}
-	if utils.MapKeyIsSet("module", e.RequestParams) {
-		return errors.New("The params module is not exists")
+
+	//校验以下参数是否存在
+	for _, v := range [...]string{"module", "method", "product", "filename"} {
+		if utils.MapKeyIsSet(v, e.RequestParams) {
+			return errors.New("The params " + v + " is not exists")
+		}
 	}
 
-	if utils.MapKeyIsSet("method", e.RequestParams) {
-		return errors.New("The params method is not exists")
-	}
-
-	if utils.MapKeyIsSet("product", e.RequestParams) {
-		return errors.New("The params product is not exists")
-	}
-	if utils.MapKeyIsSet("filename", e.RequestParams) {
-		return errors.New("The params filename is not exists")
-	}
 	//add data to database
-	e.Params = &ModelExport{Status: STATUSSTART, Fileext: "xlsx", Filesize: 0, Createtime: utils.TimeNow(), Progress: 0}
+	e.Params = &ModelExport{Status: STATUSSTART, Fileext: "xlsx", Filesize: 0, Createtime: utils.TimeNow(), Progress: ProgressStepStart}
 
 	req := make(map[string]interface{})
 	e.Params.Filename, e.Params.RequestModule, e.Params.RequestMethod, e.Params.RequestProduct, e.Params.Alpha, e.Params.Token, e.Params.Generateditself, req = (*e.RequestParams)["filename"].(string), (*e.RequestParams)["module"].(string),
@@ -97,9 +110,8 @@ func (e *ExportStart) paramsDefaultDeal() error {
 
 	e.Params.Paramdata = (*e.RequestParams)
 	e.Params.RequestFormdata = &req
-
 	//设置开始任务的进度
-	e.Params.Progress = PROGRESSSTART
+	e.Params.Progress = ProgressStepStartParams
 	return err
 }
 

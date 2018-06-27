@@ -2,7 +2,7 @@ package export
 
 //ExportCancel 取消导出服务
 type ExportCancel struct {
-	ExportBaseStruct
+	BaseStruct
 	Res bool
 }
 
