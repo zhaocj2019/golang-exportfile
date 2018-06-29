@@ -22,6 +22,18 @@ const (
 	STATUSFAILURE = -1
 )
 
+var (
+	export *Export
+)
+
+//NewExport 初始化Export
+func NewExport() *Export {
+	if nil == export {
+		export = &Export{}
+	}
+	return export
+}
+
 //Export 导出服务参数
 type Export struct {
 	Params     *map[string]interface{}
@@ -99,6 +111,13 @@ func (export *Export) ExportGetProgress() *[]Progress {
 //ExportGetList 结构体的方法
 func (export *Export) ExportGetList() *[]ExportListReturn {
 	action := &ExportGetList{BaseStruct{RequestParams: export.Params, Log: export.LogPointer, ProgressID: "", Cache: export.Cache}, nil}
+	res := action.Run()
+	return res
+}
+
+//ExportClear 清除导出数据
+func (export *Export) ExportClear() bool {
+	action := &ExportClear{BaseStruct{RequestParams: export.Params, Log: export.LogPointer, ProgressID: "", Cache: export.Cache}}
 	res := action.Run()
 	return res
 }

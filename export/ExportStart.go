@@ -5,8 +5,9 @@ package export
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
-	"github.com/zhaochangjiang/golang-utils/utils"
+	utils "github.com/zhaochangjiang/golang-utils/myutils"
 )
 
 //ExportStart the task export start struct
@@ -40,6 +41,7 @@ func (e *ExportStart) Run() (string, error) {
 	if nil != err {
 		return id, err
 	}
+	e.validatePermit()
 
 	//设置初始的导出进度
 	e.setInitProgress()
@@ -47,6 +49,25 @@ func (e *ExportStart) Run() (string, error) {
 	//执行后台任务生成Excel文件
 	(&RunTaskClient{StartParams: e.Params, Domain: e.Domain, Port: e.Port}).Run()
 	return e.BaseStruct.ProgressID, err
+}
+
+//权限验证
+func (e *ExportStart) validatePermit() {
+	var version = "v1"
+	//  $timer = ['connection_timeout' => 25, 'execute_timeout' => 25];
+	api := "ucenter-v1.auth.validate"
+
+	var params = make(map[string]string)
+
+	params["_TOKEN"] = e.Params.Token
+
+	params["url"] = "/" + version + "/" + e.Params.RequestProduct + "/" + e.Params.RequestModule + "/" + e.Params.RequestMethod
+	params["subsystem"] = (e.Params.RequestProduct + "-" + version)
+	content, err := NewAccessAlpha().SetMethod("POST").SetAPI(api).SetParams(&params).Run()
+	if nil != err {
+		panic(err)
+	}
+	fmt.Println(content)
 }
 
 //保存进度到Redis

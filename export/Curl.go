@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	curl "github.com/mikemintang/go-curl"
+	curl "github.com/zhaochangjiang/golang-utils/httprequest"
 )
 
 //CurlRequestData  the params of the request to server
@@ -13,8 +13,22 @@ type CurlRequestData struct {
 	URI        string
 	Headers    map[string]string
 	Cookies    map[string]string
-	PostParams map[string]interface{}
+	PostParams map[string]string
 	GetParams  map[string]string
+}
+
+//NewCurlRequestData
+func NewCurlRequestData() *CurlRequestData {
+	return &CurlRequestData{}
+}
+
+//ChangePost 将Get格式数据转换为post格式的数据
+func (crd *CurlRequestData) ChangePost(p *map[string]string) *map[string]interface{} {
+	res := make(map[string]interface{})
+	for k, v := range *p {
+		res[k] = v
+	}
+	return &res
 }
 
 //CurlResponse curl return contents
@@ -56,8 +70,9 @@ func (cr *CURL) Request() (string, error) {
 
 	reponseString := ""
 	req := curl.NewRequest()
+
 	cr.requestResponse.response, cr.requestResponse.err = req.
-		SetUrl(cr.RequestData.URI).
+		SetURL(cr.RequestData.URI).
 		SetHeaders(cr.RequestData.Headers).
 		SetCookies(cr.RequestData.Cookies).
 		SetQueries(cr.RequestData.GetParams).

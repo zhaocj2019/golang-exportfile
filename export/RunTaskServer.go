@@ -1,7 +1,16 @@
 package export
 
 import (
-	"strconv"
+	"github.com/zhaochangjiang/golang-utils/myutils"
+)
+
+const (
+
+	//EveryGetDataPageSize 每次并发取多少页
+	EveryGetDataPageSize = 10
+
+	//EveryGetDataSheetSize 每次并发取多少个sheet
+	EveryGetDataSheetSize = 10
 )
 
 //RunTask 执行生成数据功能操作
@@ -9,7 +18,6 @@ type RunTask struct {
 	BaseStruct
 	FileResource *ExcelWriter //
 	FileName     string
-	RepsonseBody string
 	TotalPage    int
 	Data         []interface{}
 	StartParams  *ModelExport
@@ -22,7 +30,7 @@ func (e *RunTask) Run() {
 	e.FileResource.InitFile().InitSheet(e.FileName)
 	defer e.FileResource.Close()
 
-	//get data and deal it
+	//获取数据处理逻辑
 	e.dataDeal()
 }
 
@@ -30,63 +38,78 @@ func (e *RunTask) Run() {
 func (e *RunTask) orgReturnData() {
 
 }
-func (e *RunTask) getDataAlpha() {
-	crd := &CurlRequestData{}
-	e.callCurl(crd)
-}
-
-func (e *RunTask) getDataEws() {
-	crd := &CurlRequestData{}
-	e.callCurl(crd)
-}
-func (e *RunTask) getOldFrameWork() {
-	crd := &CurlRequestData{}
-	e.callCurl(crd)
-}
-
-//发送请求获取数据
-func (e *RunTask) callCurl(crd *CurlRequestData) {
-
-	var err error
-	var time = 3
-
-	curl := NewCurl()
-	curl.URI = crd.URI
-	curl.RequestData.GetParams = crd.GetParams
-	curl.RequestData.PostParams = crd.PostParams
-	curl.RequestData.Cookies = crd.Cookies
-	curl.RequestData.Headers = crd.Headers
-
-	//未防止一次请求数据超时，发送3次请求
-	for i := 0; i < time; i++ {
-		e.RepsonseBody, err = curl.Request()
-		if nil == err { //如果有一次获取数据成功，那么就表示成功,退出循环和方法
-			return
-		}
-		e.Log.Write(LogError, "第"+strconv.Itoa(i)+"次尝试请求数据失败,内容描述"+err.Error())
-	}
-	e.Log.Write(LogError, "连续尝试"+strconv.Itoa(time)+"次获取数据失败!")
-}
 
 //获取数据请求
 func (e *RunTask) getData() {
 	switch e.StartParams.Alpha {
 	case 1: //如果是新框架访问
-		e.getDataAlpha()
+		NewAccessAlpha()
 		break
 	case 2: //如果是EWS访问
-		e.getDataEws()
+		NewAccessEws()
 		break
 	default: //如果是老框架访问
-		e.getOldFrameWork()
+		NewAccessZendao()
 		break
 	}
 }
 func (e *RunTask) getSheetCount() int {
-
 	return 1
 }
-func (e *RunTask) getSheet(ch chan bool, sheetIndex int) {
+
+//开始数据整合
+func (e *RunTask) dataDeal() {
+
+	//获取当前导出功能共多少个sheet
+	sheetCount := e.getSheetCount()
+
+	//分页切分，并行获取不同的sheet数据
+	sheetMaxPage := myutils.CalcucateMaxPage(sheetCount, EveryGetDataSheetSize)
+	for m := 0; m < sheetMaxPage; m++ {
+
+		e.getDataSheet(&getSheetParams{PageSize: e.getSheetTaksCount(sheetCount, m, sheetMaxPage), SheetFromIndex: m * EveryGetDataSheetSize, SheetMax: sheetMaxPage})
+	}
+
+}
+
+//responseDataFormat 校验返回数据是否正确,并格式化返回数据用以适配写入Excel文件
+func (e *RunTask) responseDataFormat() {
+
+}
+
+type getSheetParams struct {
+	PageSize       int
+	SheetFromIndex int
+	SheetMax       int
+}
+
+//获得当前切片改获取的sheet个数
+func (e *RunTask) getSheetTaksCount(sheetCount int, formIndex int, sheetMaxPage int) int {
+	//获得当前切片需要执行获取任务sheet数量
+	var nowPageSize = EveryGetDataSheetSize
+	if formIndex+1 == sheetMaxPage {
+		sps := sheetCount % EveryGetDataSheetSize
+		if sps != 0 { //如果最后一页数量EveryGetDataSheetSize
+			nowPageSize = sps
+		}
+	}
+	return nowPageSize
+}
+
+//
+func (e *RunTask) getDataSheet(sheetParams *getSheetParams) {
+	chs := make([]chan int, sheetParams.SheetMax)
+
+	for i := sheetParams.SheetFromIndex; i < sheetParams.SheetFromIndex+sheetParams.PageSize; i++ {
+		chs[i] = make(chan int)
+		go e.getSheet(chs[i], i)
+	}
+	for _, ch := range chs {
+		<-ch
+	}
+}
+
+func (e *RunTask) getSheet(ch chan int, sheetIndex int) {
 	//get the first page data and set it at e.Data
 	//获得首页信息
 	e.getData()
@@ -99,23 +122,5 @@ func (e *RunTask) getSheet(ch chan bool, sheetIndex int) {
 		e.getData()
 		e.responseDataFormat()
 	}
-	ch <- true
-}
-func (e *RunTask) dataDeal() {
-
-	sheetCount := e.getSheetCount()
-	chs := make([]chan bool, sheetCount)
-	for i := 0; i < sheetCount; i++ {
-		chs[i] = make(chan bool)
-		go e.getSheet(chs[i], i)
-	}
-	for _, ch := range chs {
-		<-ch
-	}
-	e.FileResource.AddRow()
-}
-
-//responseDataFormat 校验返回数据是否正确,并格式化返回数据用以适配写入Excel文件
-func (e *RunTask) responseDataFormat() {
-
+	ch <- sheetIndex
 }
